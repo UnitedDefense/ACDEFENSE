@@ -1,0 +1,42 @@
+# Serena project configuration for ACDefenseCo website
+# Project: acdefense-website
+# Type: Next.js 16 with TypeScript, React Admin, NextAuth
+
+# Display name for the project
+name: acdefense
+
+# Primary programming language for this project
+# Serena will use the TypeScript language server for code intelligence
+language: typescript
+
+# Context in which Serena is being used
+# Options: cli, desktop, jetbrains
+# cli = Claude Code CLI (our current environment)
+context: cli
+
+# Modes to activate for this project
+# interactive = ask for clarification when needed
+# editing = allow code editing operations
+modes:
+- interactive
+- editing
+
+# Project-specific notes/description
+description: |
+  ACDefenseCo - American Civil Defense Company website
+
+  Tech Stack:
+  - Next.js 16.1.6 with App Router
+  - React Admin 5.14.1 for admin panel
+  - NextAuth v5 for authentication (credentials + Google OAuth)
+  - Drizzle ORM with PostgreSQL 16
+  - Google Calendar API integration
+  - Calendly webhook integration
+  - SendGrid for transactional emails
+
+  Key Features:
+  - E-commerce (products, categories, cart, checkout)
+  - Course booking system with schedules
+  - Admin panel for managing all content
+  - OAuth integration with Google Calendar sync
+  - Email automation with graceful degradation

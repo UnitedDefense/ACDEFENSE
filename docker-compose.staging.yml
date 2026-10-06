@@ -1,0 +1,59 @@
+services:
+  postgres-staging:
+    image: postgres:16-alpine
+    container_name: postgres-staging
+    restart: always
+    environment:
+      POSTGRES_USER: acdefense
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: acdefense
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acdefense"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - staging_network
+
+  acdefense-staging:
+    image: ghcr.io/chicago-joe/acdefense:staging
+    container_name: website-staging
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - DATABASE_URL=postgresql://acdefense:${POSTGRES_PASSWORD}@postgres-staging:5432/acdefense
+      - NEXTAUTH_URL=${STAGING_NEXTAUTH_URL:-https://staging.acdefenseco.net}
+      - NEXTAUTH_SECRET=${STAGING_NEXTAUTH_SECRET}
+      - NODE_ENV=production
+      - INTERNAL_BACKUP_TOKEN=${INTERNAL_BACKUP_TOKEN}
+    volumes:
+      - uploads_staging_data:/app/public/uploads
+      - /root/backups/staging/events:/app/backups
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+    networks:
+      - staging_network
+
+  acdefense-staging-tunnel:
+    container_name: ac-tunnel-staging
+    image: cloudflare/cloudflared:latest
+    command: "tunnel --no-autoupdate run --token ${STAGING_CLOUDFLARE_TUNNEL_TOKEN}"
+    depends_on:
+      - acdefense-staging
+    networks:
+      - staging_network
+
+volumes:
+  postgres_staging_data:
+  uploads_staging_data:
+
+networks:
+  staging_network:
+    driver: bridge

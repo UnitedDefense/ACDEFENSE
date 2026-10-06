@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: acdefense
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: acdefense
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acdefense"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - site_network
+
+  acdefense:
+    image: ghcr.io/chicago-joe/acdefense:${deployment:-development}
+    container_name: website
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://acdefense:${POSTGRES_PASSWORD}@postgres:5432/acdefense
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NODE_ENV=${deployment:-development}
+      - INTERNAL_BACKUP_TOKEN=${INTERNAL_BACKUP_TOKEN}
+    volumes:
+      - uploads_data:/app/public/uploads
+      - /root/backups/events:/app/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - site_network
+
+  acdefense-tunnel:
+    container_name: ac-tunnel
+    image: cloudflare/cloudflared:latest
+    command: "tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN} --url http://website:3000"
+    depends_on:
+      - acdefense
+    networks:
+      - site_network
+
+volumes:
+  postgres_data:
+  uploads_data:
+
+networks:
+  site_network:
+    driver: bridge
